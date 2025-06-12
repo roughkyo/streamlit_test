@@ -3,7 +3,9 @@ st.title('🖼️ yt-img-app')
 st.header('YouTube 썸네일 이미지 추출기 앱')
 
 with st.expander('이 앱에 대하여'):
-    st.write('이 앱은 YouTube 동영상의 썸네일 이미지를 검색합니다.')
+    st.write('이 앱은 YouTube 동영상의 썸네일 이미지를 추출해 제공함')
+    st.write('사용법: 유튜브 주소가 https://www.youtube.com/watch?v=p2EGFTsXbyM&ab_channel=YTN 라면? ')
+    st.write('✅ ab_channel 전주소까지만 추출 ➡️ 'https://youtu.be/p2EGFTsXbyM'만 입력')
 
 
 st.sidebar.header('설정')
