@@ -1,5 +1,5 @@
 import streamlit as st
-st.title('🖼️ yt-img-app')
+st.title('🖼️ gyh_service_demo')
 st.header('YouTube 썸네일 이미지 추출기 앱')
 
 with st.expander('썸네일 추출기 app 사용법(클릭)'):
