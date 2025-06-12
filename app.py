@@ -13,7 +13,7 @@ img_dict = {'Max': 'maxresdefault', 'High': 'hqdefault', 'Medium': 'mqdefault', 
 selected_img_quality = st.sidebar.selectbox('이미지 품질 선택', ['Max', 'High', 'Medium', 'Standard'])
 img_quality = img_dict[selected_img_quality]
 
-yt_url = st.text_input('YouTube URL 붙여넣기', 'https://youtu.be/JwSS70SZdyM')
+yt_url = st.text_input('YouTube URL 붙여넣기', 'https://www.youtube.com/watch?v=kTFWhKrjMR')
 
 
 def get_ytid(input_url):
