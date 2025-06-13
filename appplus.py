@@ -6,13 +6,14 @@ from youtube_transcript_api import YouTubeTranscriptApi
 # — 1) API 키 로드 — 
 #  a) 로컬 개발: .streamlit/secrets.toml 사용
 #  b) 배포 환경: 환경변수 GEMINI_API_KEY 또는 Streamlit Cloud Secrets 사용
+# 1) secrets.toml 에서 API 키 로드
 try:
     gemini_api_key = st.secrets["general"]["gemini_api_key"]
-except Exception:
-    gemini_api_key = os.getenv("GEMINI_API_KEY", "")
+except KeyError:
+    gemini_api_key = ""  # 파일에 없거나 키가 틀리면 빈 문자열
 
 if not gemini_api_key:
-    st.sidebar.error("API 키가 필요함. secrets.toml이나 환경변수에 설정하세요.")
+    st.error("API 키 설정 필요 (.streamlit/secrets.toml 확인)")
     st.stop()
 
 # — 2) SDK 초기화 — 
