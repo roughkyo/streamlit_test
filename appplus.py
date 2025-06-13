@@ -6,36 +6,58 @@ from youtube_transcript_api import YouTubeTranscriptApi
 # — 1) API 키 로드 — 
 #  a) 로컬 개발: .streamlit/secrets.toml 사용
 #  b) 배포 환경: 환경변수 GEMINI_API_KEY 또는 Streamlit Cloud Secrets 사용
+#  c) 또는 UI를 통한 직접 입력
 
 # 1) 먼저 환경 변수에서 API 키 확인
 gemini_api_key = os.environ.get("GEMINI_API_KEY", "")
+api_key_source = "환경 변수"
 
 # 2) 환경 변수에 없으면 secrets.toml에서 로드 시도
 if not gemini_api_key:
     try:
         gemini_api_key = st.secrets["general"]["gemini_api_key"]
-        st.sidebar.success("Secrets에서 API 키를 성공적으로 로드했습니다.")
+        # 기본 텍스트가 그대로 있는지 확인
+        if gemini_api_key in ["여기에_실제_API_키_입력", "YOUR_API_KEY"]:
+            gemini_api_key = ""  # 실제 키가 아니므로 비움
+            raise ValueError("유효한 API 키가 아닙니다.")
+        api_key_source = "Secrets 파일"
     except Exception as e:
-        st.sidebar.error(f"Secrets 로드 오류: {e}")
-        st.sidebar.info("""
-        API 키 설정 방법:
-        1. 로컬 환경: .streamlit/secrets.toml 파일에 아래 내용 추가
-           [general]
-           gemini_api_key = "YOUR_API_KEY"
-           
-        2. 환경 변수: GEMINI_API_KEY 설정
-        
-        3. Streamlit Cloud: 앱 설정의 Secrets 메뉴에서 설정
-        """)
         gemini_api_key = ""
+        api_key_source = "오류"
 
-# 하드코딩된 API 키 (개발용, 배포 시 제거하세요!)
+# 3) UI에서 직접 API 키 입력 (환경 변수와 secrets.toml에서 모두 로드 실패했을 경우)
 if not gemini_api_key:
-    # 여기에 개발 중 임시로 API 키를 입력할 수 있습니다.
-    # 주의: 실제 코드 배포 시 이 부분은 반드시 제거하세요!
-    gemini_api_key = st.text_input("Gemini API 키 입력:", type="password")
-    if not gemini_api_key:
+    st.sidebar.warning("API 키를 찾을 수 없습니다. 아래 방법 중 하나로 설정해주세요.")
+    st.sidebar.info("""
+    API 키 설정 방법:
+    1. 로컬 환경: .streamlit/secrets.toml 파일에 아래 내용 추가
+       [general]
+       gemini_api_key = "실제_API_키_값"
+       
+    2. 환경 변수: GEMINI_API_KEY 설정
+    
+    3. Streamlit Cloud: 앱 설정의 Secrets 메뉴에서 설정
+    
+    4. 또는 아래에 직접 입력 (일회성)
+    """)
+    
+    # UI에서 직접 API 키 입력
+    gemini_api_key = st.sidebar.text_input("Gemini API 키 입력:", type="password", key="api_key_input")
+    
+    if gemini_api_key:
+        api_key_source = "직접 입력"
+        st.sidebar.success("API 키가 입력되었습니다.")
+    else:
+        st.sidebar.error("API 키를 입력해주세요.")
         st.stop()
+
+# API 키 로드 성공 시 표시
+st.sidebar.success(f"API 키 로드 성공 (출처: {api_key_source})")
+
+# 디버깅 도움이 될 경우 활성화 (API 키의 처음 5자만 표시)
+# if gemini_api_key:
+#     masked_key = gemini_api_key[:5] + "..." if len(gemini_api_key) > 5 else "유효하지 않음"
+#     st.sidebar.info(f"API 키: {masked_key}")
 
 # — 2) SDK 초기화 — 
 genai.configure(api_key=gemini_api_key)
