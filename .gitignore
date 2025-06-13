@@ -33,3 +33,5 @@ env/
 .vscode/
 *.swp
 *.swo
+
+secrets.toml

@@ -7,19 +7,35 @@ from youtube_transcript_api import YouTubeTranscriptApi
 #  a) 로컬 개발: .streamlit/secrets.toml 사용
 #  b) 배포 환경: 환경변수 GEMINI_API_KEY 또는 Streamlit Cloud Secrets 사용
 
-# 1) 환경 변수에서 API 키 확인
+# 1) 먼저 환경 변수에서 API 키 확인
 gemini_api_key = os.environ.get("GEMINI_API_KEY", "")
 
 # 2) 환경 변수에 없으면 secrets.toml에서 로드 시도
 if not gemini_api_key:
     try:
         gemini_api_key = st.secrets["general"]["gemini_api_key"]
-    except KeyError:
-        gemini_api_key = ""  # 파일에 없거나 키가 틀리면 빈 문자열
+        st.sidebar.success("Secrets에서 API 키를 성공적으로 로드했습니다.")
+    except Exception as e:
+        st.sidebar.error(f"Secrets 로드 오류: {e}")
+        st.sidebar.info("""
+        API 키 설정 방법:
+        1. 로컬 환경: .streamlit/secrets.toml 파일에 아래 내용 추가
+           [general]
+           gemini_api_key = "YOUR_API_KEY"
+           
+        2. 환경 변수: GEMINI_API_KEY 설정
+        
+        3. Streamlit Cloud: 앱 설정의 Secrets 메뉴에서 설정
+        """)
+        gemini_api_key = ""
 
+# 하드코딩된 API 키 (개발용, 배포 시 제거하세요!)
 if not gemini_api_key:
-    st.error("API 키가 설정되어 있지 않습니다. 환경 변수 GEMINI_API_KEY 또는 Streamlit Cloud의 Secrets 설정이 필요합니다.")
-    st.stop()
+    # 여기에 개발 중 임시로 API 키를 입력할 수 있습니다.
+    # 주의: 실제 코드 배포 시 이 부분은 반드시 제거하세요!
+    gemini_api_key = st.text_input("Gemini API 키 입력:", type="password")
+    if not gemini_api_key:
+        st.stop()
 
 # — 2) SDK 초기화 — 
 genai.configure(api_key=gemini_api_key)
