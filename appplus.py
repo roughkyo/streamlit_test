@@ -4,53 +4,91 @@ import google.generativeai as genai
 from youtube_transcript_api import YouTubeTranscriptApi
 
 # — 1) API 키 로드 — 
-# Streamlit Cloud에서는 앱 설정의 Secrets 메뉴에서 API 키를 설정하여 자동 적용
-
 # API 키 로드 시도 순서:
-# 1. Streamlit Secrets (배포 환경)
-# 2. 환경 변수 (로컬 개발)
+# 1. 하드코딩된 API 키 (배포 환경용, 실제 배포 시 여기에 API 키 입력)
+# 2. Streamlit Secrets (중요: .gitignore에 등록하여 깃에 업로드되지 않도록 해야 함)
+# 3. 환경 변수 (로컬 개발)
+# 4. 사용자 입력 (UI)
 
-try:
-    # 우선 Streamlit Secrets에서 API 키 로드 시도 (배포 환경용)
-    gemini_api_key = st.secrets["general"]["gemini_api_key"]
-    
-    # 실제 API 키인지 확인 (기본 템플릿 텍스트 검사)
-    if any(placeholder in gemini_api_key for placeholder in ["여기에_실제_API_키_입력", "YOUR_API_KEY", "AIzaSy"]):
-        st.sidebar.warning("Streamlit Secrets에 유효한 API 키가 없습니다. 환경 변수를 확인합니다.")
-        gemini_api_key = ""
-    else:
-        st.sidebar.success("✅ API 키가 자동으로 로드되었습니다.")
-        
-except Exception:
-    # Secrets에서 로드 실패한 경우 환경 변수 확인
-    gemini_api_key = os.environ.get("GEMINI_API_KEY", "")
-    if gemini_api_key:
-        st.sidebar.success("✅ 환경 변수에서 API 키를 로드했습니다.")
+# 배포 환경에서 사용할 API 키 (실제 배포 시에만 아래 값을 실제 API 키로 변경)
+# 주의: 이 방법은 코드가 공개되는 경우 API 키가 노출될 수 있으니 주의하세요
+GEMINI_API_KEY = "여기에_실제_API_키_입력"
 
-# API 키가 없는 경우에만 입력 필드 표시 (개발 환경용)
+# 1. 먼저 하드코딩된 API 키 확인
+gemini_api_key = GEMINI_API_KEY if GEMINI_API_KEY and "여기에_실제_API_키_입력" not in GEMINI_API_KEY else ""
+api_source = "하드코딩된 키" if gemini_api_key else ""
+
+# 2. API 키가 없으면 Streamlit Secrets에서 로드 시도
 if not gemini_api_key:
-    st.sidebar.warning("⚠️ API 키를 찾을 수 없습니다.")
-    
-    # 개발자용 안내 메시지 (축소 가능)
-    with st.sidebar.expander("API 키 설정 방법 (개발자용)"):
-        st.info("""
-        **Streamlit Cloud 배포 시**:
-        1. Streamlit Cloud의 앱 설정 → Secrets 메뉴에서 아래 내용 추가:
-           ```
-           [general]
-           gemini_api_key = "실제_API_키_값"
-           ```
+    try:
+        # Secrets 정보 출력 (디버깅용)
+        available_secrets = list(st.secrets.keys())
+        if "general" in available_secrets:
+            general_keys = list(st.secrets["general"].keys())
+            st.sidebar.info(f"사용 가능한 Secrets: {available_secrets}, general 키: {general_keys}")
+        else:
+            st.sidebar.warning(f"사용 가능한 Secrets: {available_secrets}, 'general' 키가 없습니다.")
+            
+        # API 키 로드 시도
+        gemini_api_key = st.secrets["general"]["gemini_api_key"]
+        api_source = "Streamlit Secrets"
         
-        **로컬 개발 시**:
-        1. .streamlit/secrets.toml 파일에 위와 동일한 내용 추가 또는
-        2. 환경 변수 GEMINI_API_KEY 설정
-        """)
+        # 유효한 키인지 확인 (예시 텍스트 검사)
+        if any(placeholder in gemini_api_key for placeholder in [
+            "여기에_실제_API_키_입력", "YOUR_API_KEY", "실제_API_키를_여기에_입력하세요"
+        ]):
+            gemini_api_key = ""
+            st.sidebar.warning("Secrets에 실제 API 키가 아닌 예시 텍스트가 있습니다.")
+    except Exception as e:
+        st.sidebar.error(f"Secrets 로드 오류: {str(e)}")
+        gemini_api_key = ""
+
+# 3. 환경 변수에서 API 키 확인
+if not gemini_api_key:
+    gemini_api_key = os.environ.get("GEMINI_API_KEY", "")
+    api_source = "환경 변수" if gemini_api_key else ""
+
+# 4. API 키가 없는 경우 사용자 입력 필드 표시
+if not gemini_api_key:
+    st.sidebar.warning("API 키를 찾을 수 없습니다.")
     
-    # 개발용으로만 직접 입력 필드 제공
+    # 배포 안내 메시지
+    st.sidebar.info("""
+    ### Streamlit Cloud 배포 시
+    
+    1. **앱 비공개 설정**: 
+       - 앱 설정 → Sharing → "Private" 선택
+    
+    2. **API 키 설정 방법**:
+       - 앱 설정 → Secrets 메뉴에서 아래 내용 추가:
+       ```
+       [general]
+       gemini_api_key = "실제_API_키_값"
+       ```
+       
+    3. **또는 코드에 직접 API 키 입력**:
+       - 코드 상단의 `GEMINI_API_KEY` 변수에 직접 API 키 입력
+       - 단, 이 방법은 코드가 공개되면 API 키가 노출될 수 있음
+    """)
+    
+    # 직접 입력 필드
     gemini_api_key = st.sidebar.text_input("Gemini API 키 입력:", type="password")
+    api_source = "사용자 입력" if gemini_api_key else ""
+    
     if not gemini_api_key:
-        st.sidebar.error("⚠️ API 키를 입력해야 앱을 사용할 수 있습니다.")
+        st.sidebar.error("API 키를 입력해주세요.")
         st.stop()
+
+# API 키 로드 성공 시
+if gemini_api_key:
+    st.sidebar.success(f"✅ API 키 로드 성공! (출처: {api_source})")
+    
+    # API 키의 길이와 첫 4자리 마스킹하여 표시 (디버깅용)
+    if len(gemini_api_key) > 8:
+        masked_key = f"{gemini_api_key[:4]}...{gemini_api_key[-4:]}" 
+        st.sidebar.info(f"API 키 확인: {masked_key} (총 {len(gemini_api_key)}자)")
+    else:
+        st.sidebar.warning("API 키가 너무 짧습니다. 유효한지 확인해주세요.")
 
 # 디버깅 도움이 될 경우 활성화 (API 키의 처음 5자만 표시)
 # if gemini_api_key:
@@ -58,8 +96,21 @@ if not gemini_api_key:
 #     st.sidebar.info(f"API 키: {masked_key}")
 
 # — 2) SDK 초기화 — 
-genai.configure(api_key=gemini_api_key)
-model = genai.GenerativeModel("gemini-2.0-flash")
+try:
+    genai.configure(api_key=gemini_api_key)
+    model = genai.GenerativeModel("gemini-2.0-flash")
+    
+    # 모델이 제대로 로드되었는지 API 테스트 (선택 사항)
+    try:
+        # 간단한 API 테스트 (무거운 작업 방지를 위해 짧은 요청)
+        test_response = model.generate_content("안녕하세요")
+        if test_response:
+            st.sidebar.success("✅ API 연결 테스트 성공!")
+    except Exception as e:
+        st.sidebar.warning(f"API 테스트 실패: {str(e)[:100]}...")
+except Exception as e:
+    st.sidebar.error(f"SDK 초기화 오류: {str(e)[:100]}...")
+    st.stop()
 
 # — 3) 사이드바 UI — 
 st.sidebar.header("설정")
